@@ -9,8 +9,10 @@ const bucket = new WeakMap();
 
 class ReactiveEffect {
   private fn: any;
-  // deps：一个数组，存储所有包含当前副作用函数的依赖集合。
-  deps: any[]; 
+  // deps：一个数组，存储所有【包含当前副作用函数的依赖集合】，存的是一堆Set组成的数组。
+  // 在track收集时，同时进行deps的收集
+  // 这样每个副作用函数的deps里都存好了包含它自身的依赖集合。
+  deps: any[];
 
   constructor(fn) {
     this.fn = fn;
@@ -32,8 +34,8 @@ const cleanup = (effect: ReactiveEffect) => {
 };
 
 export const effect = (fn: Function) => {
-  const dep: ReactiveEffect = new ReactiveEffect(fn);
-  dep.run();
+  const _effect: ReactiveEffect = new ReactiveEffect(fn);
+  _effect.run();
 };
 
 // track会在get时触发，用途是收集副作用函数，存入bucket。
