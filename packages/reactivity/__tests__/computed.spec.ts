@@ -39,6 +39,8 @@ describe('reactivity/computed', () => {
 
     let res = 0;
 
+    // computed嵌套于别的effect中时，外层的effect收集不到它的getter作为依赖。
+    // 就会出现修改getter依赖的属性时，外层的effect不会触发trigger的问题。
     effect(() => {
       res = val.value;
     });
