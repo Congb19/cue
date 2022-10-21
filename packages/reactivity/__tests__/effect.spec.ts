@@ -7,7 +7,7 @@ describe('reactivity/effect', () => {
   // 基本，测试用户传入的函数执行情况
   it('effect1', () => {
     const fn = vi.fn(() => {
-      console.log('test effect 1');
+      console.log('hello, cue!');
     });
     // fn传入时，会执行一次。
     effect(fn);
@@ -63,5 +63,69 @@ describe('reactivity/effect', () => {
     // 所以这时fn不会再执行一次了。
     expect(fn).toHaveBeenCalledTimes(2);
     expect(text).toBe('not');
+  });
+  // 嵌套effect测试
+  it('effect4', () => {
+    let temp1, temp2;
+    const obj = reactive({ temp1: true, temp2: true });
+    const fn2 = vi.fn(() => {
+      console.log('内层fn2执行');
+      temp2 = obj.temp2;
+    });
+    const fn1 = vi.fn(() => {
+      console.log('外层fn1执行');
+      effect(fn2);
+      temp1 = obj.temp1;
+    });
+    effect(fn1);
+
+    expect(temp1).toBe(true);
+    expect(temp2).toBe(true);
+    expect(fn1).toHaveBeenCalledTimes(1);
+    expect(fn2).toHaveBeenCalledTimes(1);
+
+    obj.temp1 = false;
+    expect(temp1).toBe(false);
+    expect(temp2).toBe(true);
+    expect(fn1).toHaveBeenCalledTimes(2);
+    expect(fn2).toHaveBeenCalledTimes(2);
+  });
+  // 无限递归循环测试
+  it('effect5', () => {
+    let obj = reactive({ num: 0 });
+    const fn1 = vi.fn(() => {
+      // 既读取又写入的effect。
+      // 在第一次触发trigger，run的时候，会再次触发读取和写入操作，
+      // 就是说第一次还没run完，又进入了下一次的trigger，导致无限递归。
+      obj.num++;
+      // obj.num = obj.num + 1;
+    });
+    effect(fn1);
+    expect(obj.num).toBe(1);
+  });
+  // 调度执行 测试
+  it('effect6', () => {
+    let obj = reactive({ num: 0 });
+
+    const fn1 = vi.fn(() => {
+      console.log(obj.num);
+    });
+    const options = {
+      scheduler: vi.fn((fn: Function) => {
+        setTimeout(fn);
+      }),
+    };
+    // 对effect新增第二个参数options
+    effect(fn1, options);
+
+    expect(fn1).toHaveBeenCalledTimes(1);
+    // scheduler在当前宏任务队列里，还没有调用
+    expect(options.scheduler).toHaveBeenCalledTimes(0);
+
+    obj.num++;
+    // 触发trigger，检测是否正确调用了用户给的scheduler。
+    expect(options.scheduler).toHaveBeenCalledTimes(1);
+
+    // TODO: p63，控制执行次数
   });
 });
