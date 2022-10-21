@@ -9,8 +9,26 @@ describe('reactivity/computed', () => {
   it('computed1', () => {
     const obj = reactive({ foo: 1, bar: 2 });
     const val = computed(() => obj.foo + obj.bar);
+
     expect(val.value).toBe(3);
+
     obj.foo = 2;
     expect(val.value).toBe(4);
+  });
+  // lazy computed，减少多余的执行次数 
+  it('computed2', () => {
+    const obj = reactive({ foo: 1, bar: 2 });
+    const getter = vi.fn(() => obj.foo + obj.bar);
+    const val = computed(getter);
+
+    // TODO
+    expect(getter).not.toHaveBeenCalled();
+    expect(val.value).toBe(3);
+    expect(getter).toHaveBeenCalledTimes(1);
+
+    obj.foo = 2;
+    expect(getter).toHaveBeenCalledTimes(1);
+    expect(val.value).toBe(4);
+    expect(getter).toHaveBeenCalledTimes(2);
   });
 });
