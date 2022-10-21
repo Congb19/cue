@@ -1,4 +1,4 @@
-import { ReactiveEffect } from './effect';
+import { ReactiveEffect, trigger, track } from './effect';
 
 class ComputedImpl {
   private _effect: ReactiveEffect;
@@ -15,22 +15,29 @@ class ComputedImpl {
     const options = {
       scheduler() {
         _this.dirty = true;
+        // getter依赖的数据发生变化，变得dirty，
+        // 需要手动触发trigger来重新计算。
+        trigger(_this._effect, 'value');
       },
     };
     this._effect = new ReactiveEffect(getter, options);
     this.dirty = true;
   }
-
   get value() {
     // 把getter作为effect的fn传入，调用它的run就行，返回它的run的结果。
     if (this.dirty) {
       this.val = this._effect.run();
       this.dirty = false;
     }
+    // computed嵌套于别的effect中时，外层的effect收集不到它的getter作为依赖。
+    // 就会出现修改getter依赖的属性时，外层的effect不会触发trigger的问题。
+    // 因此读取value时，需要手动触发track进行依赖收集。
+    track(this._effect, 'value');
     return this.val;
   }
 }
 
 export const computed = (getter: Function) => {
-  return new ComputedImpl(getter);
+  let obj = new ComputedImpl(getter);
+  return obj;
 };

@@ -31,4 +31,20 @@ describe('reactivity/computed', () => {
     expect(val.value).toBe(4);
     expect(getter).toHaveBeenCalledTimes(2);
   });
+  // 在另外一个effect中读取计算属性时，需要正确触发副作用函数。
+  it('computed3', () => {
+    const obj = reactive({ foo: 1, bar: 2 });
+    const getter = vi.fn(() => obj.foo + obj.bar);
+    const val = computed(getter);
+
+    let res = 0;
+
+    effect(() => {
+      res = val.value;
+    });
+    expect(res).toBe(3);
+
+    obj.foo++;
+    expect(res).toBe(4);
+  });
 });
