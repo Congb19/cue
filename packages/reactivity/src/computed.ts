@@ -1,6 +1,8 @@
 import { ReactiveEffect, trigger, track } from './effect';
 
 class ComputedImpl {
+  // _effect: effect对象。
+  // computed内部存的effect对象，它的fn相当于computed的getter。
   private _effect: ReactiveEffect;
   // dirty：是否不需要重新运行计算
   // 一开始是true，需要运算。运算完置为false。
@@ -29,8 +31,7 @@ class ComputedImpl {
       this.val = this._effect.run();
       this.dirty = false;
     }
-    // computed嵌套于别的effect中时，外层的effect收集不到它的getter作为依赖。
-    // 就会出现修改getter依赖的属性时，外层的effect不会触发trigger的问题。
+    // 如果它是套在外层effect里，外层的effect可能收集不到当前的_effect。
     // 因此读取value时，需要手动触发track进行依赖收集。
     track(this._effect, 'value');
     return this.val;
