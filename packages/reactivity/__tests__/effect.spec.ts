@@ -1,5 +1,3 @@
-// import { describe, expect, it, vi } from 'vitest';
-
 import { effect } from '../src/effect';
 import { reactive } from '../src/reactive';
 

@@ -1,3 +1,5 @@
+import { ITERATE_KEY } from './reactive';
+
 //副作用函数，全局
 let activeEffect;
 // 副作用函数栈，防止嵌套调用时可能发生的activeEffect指向错误。
@@ -70,19 +72,34 @@ export const track = (target, key) => {
 };
 
 // trigger会在set后触发，用途是取出bucket里存的这些副作用函数，并执行。
-export const trigger = (target, key) => {
+export const trigger = (target, key, type) => {
   const depsMap = bucket.get(target);
   if (!depsMap) return;
 
+  const effectsToRun = new Set();
+
   const effects = depsMap.get(key);
-  const effectsToRun = new Set(effects);
+  effects &&
+    effects.forEach((effect) => {
+      if (effect !== activeEffect) effectsToRun.add(effect);
+    });
+
+  if (type == 'ADD' || type == 'DELETE') {
+    // for-in相关：把和ITERATE_KEY有关的依赖也再拿出来触发一下。
+    const iterateEffects = depsMap.get(ITERATE_KEY);
+    iterateEffects &&
+      iterateEffects.forEach((effect) => {
+        if (effect !== activeEffect) effectsToRun.add(effect);
+      });
+  }
+
+  // run
   effectsToRun &&
     effectsToRun.forEach((effect: any) => {
       // 如果用户给定了scheduler，则调用用户的
       if (effect.options.scheduler) {
         effect.options.scheduler(effect.fn);
       } else {
-        // 避免无限递归循环
         if (effect !== activeEffect) effect.run();
       }
     });

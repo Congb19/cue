@@ -1,5 +1,3 @@
-// import { describe, expect, it, vi } from 'vitest';
-
 import { reactive } from '../src/reactive';
 import { effect } from '../src/effect';
 import { computed } from '../src/computed';
@@ -15,7 +13,7 @@ describe('reactivity/computed', () => {
     obj.foo = 2;
     expect(val.value).toBe(4);
   });
-  // lazy computed，减少多余的执行次数 
+  // lazy computed，减少多余的执行次数
   it('computed2', () => {
     const obj = reactive({ foo: 1, bar: 2 });
     const getter = vi.fn(() => obj.foo + obj.bar);
