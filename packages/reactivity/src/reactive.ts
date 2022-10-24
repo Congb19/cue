@@ -2,7 +2,13 @@ import { track, trigger } from './effect';
 
 export const ITERATE_KEY = Symbol();
 
+export const reactiveShallow = (obj) => {
+  return createReactive(obj, true);
+};
 export const reactive = (obj) => {
+  return createReactive(obj, false);
+};
+const createReactive = (obj, isShallow = false) => {
   return new Proxy(obj, {
     // 代理get和set
     get(target, key, receiver) {
@@ -15,9 +21,16 @@ export const reactive = (obj) => {
       // 但是Reflect可以接受第三个参数receiver，用来指定本次操作的this指向谁
       // 如果不指定，receiver会指向原始对象，那响应式就会丢失，effect不会运行
       let res = Reflect.get(target, key, receiver);
-
       // 收集deps
       track(target, key);
+
+      // 浅响应，第一层直接返回就行
+      if (isShallow) return res;
+
+      // 递归，实现深响应
+      if (typeof res === 'object' && res !== null) {
+        return reactive(res);
+      }
 
       return res;
     },

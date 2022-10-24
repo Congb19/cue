@@ -1,5 +1,5 @@
 import { effect } from '../src/effect';
-import { reactive } from '../src/reactive';
+import { reactive, reactiveShallow } from '../src/reactive';
 
 describe('reactivity/reactive', () => {
   //测试get
@@ -109,5 +109,40 @@ describe('reactivity/reactive', () => {
     //更新child，触发原型引起的更新；此时希望副作用只执行一次就够了。
     child.bar++;
     expect(fn).toHaveBeenCalledTimes(2);
+  });
+  // 测试 原型链，set孩子继承的属性时，避免trigger重复执行
+  it('reactive7', () => {
+    const obj = { foo: 1, bar: { bbb: 1 } };
+    const objShallow = { foo: 1, bar: { bbb: 1 } };
+    const observed = reactive(obj);
+    const observedShallow = reactiveShallow(objShallow);
+
+    const fn = vi.fn(() => {
+      console.log(observed.foo);
+      console.log(observed.bar.bbb);
+      console.log("deep finish")
+    });
+    const fnShallow = vi.fn(() => {
+      console.log(observedShallow.foo);
+      console.log(observedShallow.bar.bbb);
+      console.log('shallow finish');
+    });
+    effect(fn);
+    effect(fnShallow);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fnShallow).toHaveBeenCalledTimes(1);
+
+    // 正常深响应
+    observed.foo++;
+    expect(fn).toHaveBeenCalledTimes(2);
+    observed.bar.bbb++;
+    expect(fn).toHaveBeenCalledTimes(3);
+
+    // 改变第一层的值，触发浅响应
+    observedShallow.foo++;
+    expect(fnShallow).toHaveBeenCalledTimes(2);
+    // 改变深层值，不触发浅响应
+    observedShallow.bar.bbb++;
+    expect(fnShallow).toHaveBeenCalledTimes(2);
   });
 });
