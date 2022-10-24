@@ -6,6 +6,10 @@ export const reactive = (obj) => {
   return new Proxy(obj, {
     // 代理get和set
     get(target, key, receiver) {
+      // 新增一个raw，用于访问原始数据target。
+      // 用于在set时，判断当前receiver是不是target的代理对象（可能是原型的
+      if (key === 'raw') return target;
+
       // 效果等同于以前的Object直接取key。
       // return target[key];
       // 但是Reflect可以接受第三个参数receiver，用来指定本次操作的this指向谁
@@ -17,20 +21,28 @@ export const reactive = (obj) => {
 
       return res;
     },
-    set(target, key, value) {
+    set(target, key, value, receiver) {
       // for-in相关：
       // 判断到底是新增属性还是修改已有属性，修改已有属性的话，不需要触发ITERATE_KEY有关的依赖。
       const type = Object.prototype.hasOwnProperty.call(target, key)
         ? 'SET'
         : 'ADD';
+      // 检查旧值，是否发生了变化。
+      let oldVal = target[key];
       // 效果等同于以前的Object[]。
       // target[key] = value;
       // return true;
-      let res = Reflect.set(target, key, value);
+      let res = Reflect.set(target, key, value, receiver);
 
-      // for-in相关：
-      // 把和ITERATE_KEY有关的依赖也再拿出来触发一下。
-      trigger(target, key, type);
+      if (
+        target === receiver.raw //处理原型链，只有receiver是自己的代理对象时，触发trigger
+      ) {
+        if (
+          oldVal !== value &&
+          (oldVal === oldVal || value === value) //处理NaN
+        )
+          trigger(target, key, type);
+      }
 
       return res;
     },
@@ -53,6 +65,6 @@ export const reactive = (obj) => {
         trigger(target, key, 'DELETE');
       }
       return res;
-    }
+    },
   });
 };
