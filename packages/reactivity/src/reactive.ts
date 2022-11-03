@@ -11,7 +11,7 @@ export const reactive = (obj) => {
 const createReactive = (obj, isShallow = false) => {
   return new Proxy(obj, {
     // 代理get和set
-    get(target, key, receiver) {
+    get(target, key, receiver) { 
       // 新增一个raw，用于访问原始数据target。
       // 用于在set时，判断当前receiver是不是target的代理对象（可能是原型的
       if (key === 'raw') return target;
